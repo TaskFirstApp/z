@@ -1,0 +1,154 @@
+<html>
+<head>
+<script type="text/javascript" src="jsonpath.js"></script>
+<style>
+.c_taskContainer {
+	border: solid black;
+	float: left;
+}
+
+.c_tasks {
+	width: 30%;
+	float: left;
+	border: none;
+	clear: both;
+}
+
+.c_task {
+	width: 90%;
+	border-style: solid;
+	padding: 3px;
+	border-width: 1px;
+	border-color: black;
+	display: block;
+	border-width: 1px
+}
+
+.c_taskDetail {
+	padding: 3px;
+	width: 60%;
+	float: left;
+	border: none;
+	width: 60%;
+}
+
+.c_newTask {
+	float: left;
+	width: 28%;
+	padding: 3px;
+	border-width: 1px;
+	border-color: black;
+	border-width: 1px
+}
+
+.c_priorityCheck {
+	float: left;
+	width: 3%;
+	padding: 3px;
+}
+</style>
+<script type="text/javascript">
+	var taskData;
+	function showTaskDetails(tskId) {
+		 var toDoDetails= jsonPath(taskData, '$..[?(@.taskId=="'+tskId+'")].toDoDetails');
+		 if(toDoDetails!=false)
+		 	document.getElementById("taskDetail").innerText = toDoDetails;
+		 else
+			document.getElementById("taskDetail").innerText = "";
+	}
+	function getOneTaskRow(toDo, taskId) {
+		var taskSpanStart = "<span class='c_task' onClick='showTaskDetails(this.childNodes[0].value);'>";
+		var taskSpanEnd = "</span>";
+
+		var hiddenIdStart = "<input type='hidden' value='";
+		var hiddenIdEnd="'>";
+
+		var taskHtml = "";
+		taskHtml += taskSpanStart;		
+		taskHtml += hiddenIdStart;
+		taskHtml += taskId;
+		taskHtml += hiddenIdEnd
+		
+		taskHtml += toDo;
+		taskHtml += taskSpanEnd;
+
+		return taskHtml;
+	}
+	function displayTasks(obj) {
+		var taskHtml = "";
+		for (x in obj) {
+			taskHtml += getOneTaskRow(obj[x].toDo, obj[x].taskId);
+		}
+		document.getElementById("tasksDiv").innerHTML = taskHtml;
+	}
+	function getTasks() {
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function(response) {
+			if (xhttp.readyState == 4 && xhttp.status == 200) {
+				taskData = JSON.parse(xhttp.responseText);
+				displayTasks(taskData);
+			}
+		};
+		xhttp.open("GET", "http://localhost:9093/tasks/", true);
+		xhttp.send();
+
+	}
+	function enterNewTask(e, src) {
+		var code = (e.keyCode ? e.keyCode : e.which);
+		if (code == 13) {
+			adddNewTask(e, src);
+		}
+	}
+	function addNewTask(e, src) {
+		var toDo = src.value;
+		toDo = toDo.trim();
+		if (toDo == null || toDo == "" || typeof toDo == 'undefined')
+			return;
+		var xhttp = new XMLHttpRequest();
+		var priority = document.getElementById("priority").checked ? "High"
+				: "Medium";
+		var params = "toDo=" + toDo;
+		params += "&priority=" + priority;
+		xhttp.open("POST", "http://localhost:9093/tasks/", true);
+		xhttp.setRequestHeader("Content-type",
+				"application/x-www-form-urlencoded");
+		xhttp.onreadystatechange = function(response) {
+			if (xhttp.readyState == 4 && xhttp.status == 201) {
+				var createdTaskId = xhttp.responseText;
+				document.getElementById("tasksDiv").innerHTML = getOneTaskRow(toDo, createdTaskId)
+						+ document.getElementById("tasksDiv").innerHTML;
+			}
+		};
+		xhttp.send(params);
+		src.value = "";
+	}
+</script>
+</head>
+<body>
+	<span>TasksFirst..</span>
+	</br>
+	<div id="content" class="taskContainer">
+		<div id="tasksDivContainer>" name="tasksDivContainer>" class="">
+			<input type="checkbox" id="priority" name="priority"
+				class="c_priorityCheck" /> <input type="text" id="newTask"
+				name="newTask" class="c_newTask"
+				onfocusout="addNewTask(event, this);"
+				onkeypress="enterNewTask(event, this);" />
+			<div id="tasksDiv" name="tasksDiv" class="c_tasks">
+				<span class="c_task"> Quote from Sachin Ramesh Tendulkar. </span> <span
+					class="c_task"> It's like a finger pointing to the moon. </span> <span
+					class="c_task"> Soap, I make and I sell soap. </span>
+			</div>
+		</div>
+		<div id="taskDetail" class="c_taskDetail">This is the space for
+			task description. You must have your energies focused on one place.
+			If your energies are not focused on one place. you will not get the
+			desired result. Aggression is part of game, without it you are always
+			close but rarely the winner.</div>
+	</div>
+
+	<script type="text/javascript">
+		window.onload = getTasks();
+	</script>
+</body>
+</html>
